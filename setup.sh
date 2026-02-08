@@ -78,6 +78,10 @@ start_containers() {
         return 1
     fi
 
+    echo -e "${YELLOW}Removing any existing containers...${NC}"
+    $COMPOSE_CMD down --remove-orphans 2>/dev/null
+    docker rm -f media-search-api media-search-redis media-search-redis-commander 2>/dev/null
+
     echo -e "${GREEN}Starting Docker containers...${NC}"
     $COMPOSE_CMD up -d --build
 
