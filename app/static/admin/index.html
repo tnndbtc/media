@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Management - Admin</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Prompt Management</h1>
+            <p class="subtitle">Manage system, developer, and user-level prompts</p>
+        </header>
+
+        <div class="toolbar">
+            <div class="filters">
+                <input type="text" id="filter-name" placeholder="Filter by name..." class="input">
+                <select id="filter-level" class="select">
+                    <option value="">All Levels</option>
+                    <option value="system">System</option>
+                    <option value="developer">Developer</option>
+                    <option value="user">User</option>
+                </select>
+                <select id="filter-active" class="select">
+                    <option value="">All Status</option>
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </select>
+                <button id="btn-filter" class="btn btn-secondary">Filter</button>
+                <button id="btn-clear-filter" class="btn btn-ghost">Clear</button>
+            </div>
+            <div class="actions">
+                <button id="btn-seed" class="btn btn-secondary">Re-seed Defaults</button>
+                <button id="btn-create" class="btn btn-primary">Create Prompt</button>
+            </div>
+        </div>
+
+        <div id="prompts-table" class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Level</th>
+                        <th>Description</th>
+                        <th>Version</th>
+                        <th>Status</th>
+                        <th>Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="prompts-body">
+                    <!-- Prompts will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="pagination" class="pagination">
+            <!-- Pagination will be inserted here -->
+        </div>
+
+        <!-- Create/Edit Modal -->
+        <div id="modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-title">Create Prompt</h2>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <form id="prompt-form">
+                    <input type="hidden" id="prompt-id">
+                    <div class="form-group">
+                        <label for="prompt-name">Name</label>
+                        <input type="text" id="prompt-name" class="input" required maxlength="100" placeholder="e.g., QUERY_GENERATION_SYSTEM">
+                    </div>
+                    <div class="form-group">
+                        <label for="prompt-level">Level</label>
+                        <select id="prompt-level" class="select" required>
+                            <option value="system">System</option>
+                            <option value="developer">Developer</option>
+                            <option value="user">User</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="prompt-description">Description</label>
+                        <input type="text" id="prompt-description" class="input" maxlength="500" placeholder="Optional description">
+                    </div>
+                    <div class="form-group">
+                        <label for="prompt-content">Content</label>
+                        <textarea id="prompt-content" class="textarea" required rows="12" placeholder="Enter prompt content..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="prompt-active" checked>
+                            Active
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- View Modal -->
+        <div id="view-modal" class="modal hidden">
+            <div class="modal-content modal-lg">
+                <div class="modal-header">
+                    <h2 id="view-modal-title">View Prompt</h2>
+                    <button class="modal-close" onclick="closeViewModal()">&times;</button>
+                </div>
+                <div class="view-content">
+                    <div class="view-meta">
+                        <span class="view-level" id="view-level">system</span>
+                        <span class="view-version" id="view-version">v1</span>
+                        <span class="view-status" id="view-status">active</span>
+                    </div>
+                    <p class="view-description" id="view-description"></p>
+                    <pre class="view-prompt"><code id="view-content"></code></pre>
+                    <div class="view-timestamps">
+                        <span>Created: <span id="view-created"></span></span>
+                        <span>Updated: <span id="view-updated"></span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div id="delete-modal" class="modal hidden">
+            <div class="modal-content modal-sm">
+                <div class="modal-header">
+                    <h2>Confirm Delete</h2>
+                    <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+                </div>
+                <p>Are you sure you want to delete this prompt? This action cannot be undone.</p>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="btn-confirm-delete">Delete</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="toast hidden"></div>
+    </div>
+
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>

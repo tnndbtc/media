@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multilingual Media Search</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Multilingual Media Search</h1>
+            <p class="subtitle">Search for images and videos in any language</p>
+        </header>
+
+        <main>
+            <section class="search-section">
+                <form id="search-form">
+                    <div class="search-input-wrapper">
+                        <textarea
+                            id="search-input"
+                            placeholder="Enter your search query in any language... (e.g., 'sunset over ocean' or '海上美丽的日落')"
+                            autocomplete="off"
+                            required
+                            rows="3"
+                        ></textarea>
+                        <button type="submit" id="search-button">
+                            <span class="button-text">Search</span>
+                            <span class="button-loading" hidden>Searching...</span>
+                        </button>
+                    </div>
+
+                    <div class="search-options">
+                        <div class="option-group">
+                            <label class="option-label">Media Type:</label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="media_type" value="image" checked>
+                                <span>Images</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="media_type" value="video" checked>
+                                <span>Videos</span>
+                            </label>
+                        </div>
+
+                        <div class="option-group">
+                            <label class="option-label" for="limit">Results:</label>
+                            <select id="limit" name="limit">
+                                <option value="10">10</option>
+                                <option value="20" selected>20</option>
+                                <option value="30">30</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <section id="query-info" class="query-info" hidden>
+                <h3>Query Analysis</h3>
+                <div class="query-details">
+                    <div class="query-item">
+                        <span class="query-label">Detected Language:</span>
+                        <span id="detected-language" class="language-badge"></span>
+                    </div>
+                    <div class="query-item" id="translation-row" hidden>
+                        <span class="query-label">English Translation:</span>
+                        <span id="english-query"></span>
+                    </div>
+                    <div class="query-item">
+                        <span class="query-label">Keywords:</span>
+                        <span id="keywords" class="keywords-list"></span>
+                    </div>
+                    <div class="query-item">
+                        <span class="query-label">Processing Time:</span>
+                        <span id="processing-time"></span>
+                    </div>
+                    <div class="query-item">
+                        <span class="query-label">Results:</span>
+                        <span id="result-count"></span>
+                    </div>
+                    <div class="query-item">
+                        <span class="query-label">APIs Invoked:</span>
+                        <span id="apis-invoked" class="apis-list"></span>
+                    </div>
+                </div>
+            </section>
+
+            <section id="error-section" class="error-section" hidden>
+                <div class="error-message">
+                    <span class="error-icon">!</span>
+                    <span id="error-text"></span>
+                </div>
+            </section>
+
+            <section id="results-section" class="results-section" hidden>
+                <div id="results-grid" class="results-grid"></div>
+            </section>
+
+            <section id="loading-section" class="loading-section" hidden>
+                <div class="loading-spinner"></div>
+                <p>Searching for media...</p>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by Pexels & Pixabay | AI-powered semantic search</p>
+        </footer>
+    </div>
+
+    <div id="media-modal" class="modal" hidden>
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <div id="modal-media"></div>
+            <div class="modal-info">
+                <h4 id="modal-title"></h4>
+                <p id="modal-description"></p>
+                <div class="modal-meta">
+                    <span id="modal-photographer"></span>
+                    <a id="modal-source-link" href="#" target="_blank" rel="noopener">View on source</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
