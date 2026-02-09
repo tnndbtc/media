@@ -25,6 +25,7 @@ class QuerySummary(BaseModel):
     english_query: str = Field(..., description="Generated English query")
     native_query: str | None = Field(default=None, description="Query in original language")
     keywords: list[str] = Field(default_factory=list, description="Extracted keywords")
+    bilingual_keywords: list[str] = Field(default_factory=list, description="Keywords in both English and original language")
     processing_time_ms: float = Field(..., ge=0, description="Query processing time")
 
 
@@ -116,5 +117,41 @@ class HealthResponse(BaseModel):
                     "pexels": True,
                     "pixabay": True,
                 },
+            }
+        }
+
+
+class AgentKeywords(BaseModel):
+    """Keywords in multiple languages."""
+
+    english: list[str] = Field(default_factory=list, description="English keywords")
+    native: list[str] = Field(default_factory=list, description="Keywords in original language")
+    bilingual: list[str] = Field(default_factory=list, description="Combined bilingual keywords")
+
+
+class AgentResponse(BaseModel):
+    """Response for agent-based media search."""
+
+    success: bool = Field(default=True, description="Whether the search was successful")
+    keywords: AgentKeywords = Field(..., description="Keywords used for search in all languages")
+    images: list[MediaItem] = Field(default_factory=list, description="Image results")
+    videos: list[MediaItem] = Field(default_factory=list, description="Video results")
+    processing_time_ms: float = Field(..., ge=0, description="Total processing time in milliseconds")
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        """Pydantic config."""
+
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "keywords": {
+                    "english": ["sunset", "ocean", "beach"],
+                    "native": ["日落", "海洋", "海滩"],
+                    "bilingual": ["sunset", "日落", "ocean", "海洋"],
+                },
+                "images": [],
+                "videos": [],
+                "processing_time_ms": 1250.5,
             }
         }

@@ -128,8 +128,8 @@ backup_database() {
     local container_name="media-search-api"
     local db_path="/app/data/prompts.db"
     local backup_dir="./backups"
-    local timestamp=$(date +"%Y%m%d_%H%M%S")
-    local backup_file="${backup_dir}/prompts_${timestamp}.db"
+    local timestamp=$(date +"%Y_%m_%d_%H_%M_%S")
+    local backup_file="${backup_dir}/media_${timestamp}.db"
 
     # Check if container is running
     if ! docker ps --format '{{.Names}}' | grep -q "^${container_name}$"; then

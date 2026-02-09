@@ -187,6 +187,7 @@ class SearchPipeline:
                 english_query=generated_query.english_query,
                 native_query=generated_query.native_query,
                 keywords=generated_query.keywords,
+                bilingual_keywords=generated_query.bilingual_keywords,
                 processing_time_ms=query_time_ms,
             ),
             results=rank_result.items,

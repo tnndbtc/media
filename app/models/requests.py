@@ -110,3 +110,30 @@ class AnalyzeRequest(BaseModel):
                 "include_visual_elements": True,
             }
         }
+
+
+class AgentRequest(BaseModel):
+    """Request for agent-based media search."""
+
+    text: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Natural language text to search for (any language)",
+    )
+    number: int = Field(
+        default=10,
+        ge=2,
+        le=100,
+        description="Total number of results (split evenly between images and videos)",
+    )
+
+    class Config:
+        """Pydantic config."""
+
+        json_schema_extra = {
+            "example": {
+                "text": "beautiful sunset over the ocean",
+                "number": 10,
+            }
+        }

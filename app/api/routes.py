@@ -15,13 +15,16 @@ from app.api.dependencies import (
     PromptServiceDep,
     SettingsDep,
 )
-from app.models.requests import AnalyzeRequest, BatchSearchRequest, SearchRequest
+from app.models.requests import AgentRequest, AnalyzeRequest, BatchSearchRequest, SearchRequest
 from app.models.responses import (
+    AgentKeywords,
+    AgentResponse,
     AnalyzeResponse,
     BatchSearchResponse,
     HealthResponse,
     SearchResponse,
 )
+from app.models.media import MediaType
 from app.pipelines.analyze import AnalyzePipeline
 from app.pipelines.batch import BatchPipeline
 from app.pipelines.search import SearchPipeline
@@ -178,3 +181,72 @@ async def analyze(
     request_id = ctx.get("request_id", "unknown")
     std_logging.info(f"analyze_request - \"{request.text[:50]}\" [request_id: {request_id}]")
     return await pipeline.execute(request)
+
+
+@router.post("/agent", response_model=AgentResponse, tags=["Agent"])
+async def agent_search(
+    request: AgentRequest,
+    pipeline: SearchPipeline = Depends(get_search_pipeline),
+) -> AgentResponse:
+    """Agent-based media search for external clients.
+
+    Accepts text in any language, searches for both images and videos,
+    and returns results with multilingual keywords and processing time.
+    The number parameter is split evenly between images and videos.
+    """
+    import time
+    import asyncio
+
+    start_time = time.perf_counter()
+
+    ctx = structlog.contextvars.get_contextvars()
+    request_id = ctx.get("request_id", "unknown")
+    std_logging.info(f"agent_request - \"{request.text[:50]}\" number={request.number} [request_id: {request_id}]")
+
+    # Split the number evenly between images and videos
+    image_limit = request.number // 2
+    video_limit = request.number - image_limit  # Handle odd numbers
+
+    # Create search requests for images and videos
+    image_request = SearchRequest(
+        text=request.text,
+        media_type=[MediaType.IMAGE],
+        limit=image_limit,
+    )
+    video_request = SearchRequest(
+        text=request.text,
+        media_type=[MediaType.VIDEO],
+        limit=video_limit,
+    )
+
+    # Execute both searches concurrently
+    image_response, video_response = await asyncio.gather(
+        pipeline.execute(image_request),
+        pipeline.execute(video_request),
+    )
+
+    # Extract keywords from the query (use image response as reference)
+    query = image_response.query
+
+    # Separate English and native keywords from bilingual_keywords
+    english_keywords = query.keywords if query.keywords else []
+    bilingual = query.bilingual_keywords if query.bilingual_keywords else []
+
+    # Native keywords are bilingual keywords that are not in English keywords
+    native_keywords = [kw for kw in bilingual if kw not in english_keywords]
+
+    keywords = AgentKeywords(
+        english=english_keywords,
+        native=native_keywords,
+        bilingual=bilingual,
+    )
+
+    processing_time_ms = (time.perf_counter() - start_time) * 1000
+
+    return AgentResponse(
+        success=image_response.success and video_response.success,
+        keywords=keywords,
+        images=image_response.results,
+        videos=video_response.results,
+        processing_time_ms=processing_time_ms,
+    )
