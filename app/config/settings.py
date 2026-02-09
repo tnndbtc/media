@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000, ge=1, le=65535)
     debug: bool = Field(default=False)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(default="DEBUG")
+    log_format: Literal["json", "pretty", "console"] = Field(
+        default="json",
+        description="Log format: json (compact), pretty (human-readable with JSON), console (colored dev)"
+    )
 
     # Rate Limiting
     rate_limit_requests: int = Field(default=100, ge=1)

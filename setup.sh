@@ -33,6 +33,7 @@ print_menu() {
     echo -e "${BLUE}1)${NC} Start Docker containers"
     echo -e "${BLUE}2)${NC} Stop Docker containers"
     echo -e "${BLUE}3)${NC} View container logs"
+    echo -e "${BLUE}4)${NC} Backup database"
     echo -e "${BLUE}0)${NC} Exit"
     echo -e "${CYAN}=====================================${NC}"
 }
@@ -122,6 +123,37 @@ view_logs() {
     $COMPOSE_CMD logs -f
 }
 
+# Function to backup the database
+backup_database() {
+    local container_name="media-search-api"
+    local db_path="/app/data/prompts.db"
+    local backup_dir="./backups"
+    local timestamp=$(date +"%Y%m%d_%H%M%S")
+    local backup_file="${backup_dir}/prompts_${timestamp}.db"
+
+    # Check if container is running
+    if ! docker ps --format '{{.Names}}' | grep -q "^${container_name}$"; then
+        echo -e "${RED}Error: Container '${container_name}' is not running.${NC}"
+        echo -e "${YELLOW}Start the containers first with option 1.${NC}"
+        return 1
+    fi
+
+    # Create backup directory if it doesn't exist
+    mkdir -p "$backup_dir"
+
+    echo -e "${YELLOW}Backing up database...${NC}"
+
+    # Copy database from container
+    if docker cp "${container_name}:${db_path}" "$backup_file" 2>/dev/null; then
+        echo -e "${GREEN}Database backed up successfully!${NC}"
+        echo -e "${CYAN}Backup location: ${backup_file}${NC}"
+    else
+        echo -e "${RED}Failed to backup database.${NC}"
+        echo -e "${YELLOW}The database file may not exist yet (no data stored).${NC}"
+        return 1
+    fi
+}
+
 # Main menu loop
 main() {
     while true; do
@@ -129,7 +161,7 @@ main() {
         print_header
         print_menu
 
-        read -p "Select an option [0-3]: " choice
+        read -p "Select an option [0-4]: " choice
         echo ""
 
         case $choice in
@@ -142,12 +174,15 @@ main() {
             3)
                 view_logs
                 ;;
+            4)
+                backup_database
+                ;;
             0)
                 echo -e "${GREEN}Goodbye!${NC}"
                 exit 0
                 ;;
             *)
-                echo -e "${RED}Invalid option. Please select 1-4.${NC}"
+                echo -e "${RED}Invalid option. Please select 0-4.${NC}"
                 ;;
         esac
     done

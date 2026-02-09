@@ -4,7 +4,11 @@ from typing import Any
 
 from app.agents.base import BaseAgent
 from app.models.query import GeneratedQuery, LanguageInfo
-from app.multilingual.prompts import QUERY_GENERATION_SYSTEM, QUERY_GENERATION_USER_TEMPLATE
+from app.multilingual.prompts import (
+    QUERY_GENERATION_DEVELOPER,
+    QUERY_GENERATION_SYSTEM,
+    QUERY_GENERATION_USER_TEMPLATE,
+)
 from app.services.cache import CacheService
 from app.services.openai_client import OpenAIClient
 from app.services.prompt_service import PromptService
@@ -56,18 +60,19 @@ class QueryGeneratorAgent(BaseAgent[QueryInput, GeneratedQuery]):
             input_data.language_info.code,
         )
 
-    async def _get_prompts(self) -> tuple[str, str]:
-        """Get system and user prompts.
+    async def _get_prompts(self) -> tuple[str, str, str]:
+        """Get system, developer, and user prompts.
 
         Returns:
-            Tuple of (system_prompt, user_prompt_template)
+            Tuple of (system_prompt, developer_prompt, user_prompt_template)
         """
         if self.prompt_service is not None:
             system_prompt = await self.prompt_service.get_prompt("QUERY_GENERATION_SYSTEM")
+            developer_prompt = await self.prompt_service.get_prompt("QUERY_GENERATION_DEVELOPER")
             user_prompt = await self.prompt_service.get_prompt("QUERY_GENERATION_USER_TEMPLATE")
-            return system_prompt, user_prompt
+            return system_prompt, developer_prompt, user_prompt
         # Fallback to hardcoded prompts
-        return QUERY_GENERATION_SYSTEM, QUERY_GENERATION_USER_TEMPLATE
+        return QUERY_GENERATION_SYSTEM, QUERY_GENERATION_DEVELOPER, QUERY_GENERATION_USER_TEMPLATE
 
     async def process(self, input_data: QueryInput) -> GeneratedQuery:
         """Generate optimized search query.
@@ -78,7 +83,7 @@ class QueryGeneratorAgent(BaseAgent[QueryInput, GeneratedQuery]):
         Returns:
             GeneratedQuery with optimized queries
         """
-        system_prompt, user_prompt_template = await self._get_prompts()
+        system_prompt, developer_prompt, user_prompt_template = await self._get_prompts()
 
         prompt = user_prompt_template.format(
             text=input_data.text,
@@ -90,6 +95,7 @@ class QueryGeneratorAgent(BaseAgent[QueryInput, GeneratedQuery]):
             response = await self.openai_client.complete_json(
                 prompt=prompt,
                 system_prompt=system_prompt,
+                developer_prompt=developer_prompt,
                 temperature=0.3,
             )
 
@@ -99,6 +105,7 @@ class QueryGeneratorAgent(BaseAgent[QueryInput, GeneratedQuery]):
                 native_query=response.get("native_query"),
                 semantic_concepts=response.get("semantic_concepts", []),
                 keywords=response.get("keywords", []),
+                bilingual_keywords=response.get("bilingual_keywords", []),
                 synonyms=response.get("synonyms", []),
                 visual_elements=response.get("visual_elements", []),
                 mood=response.get("mood"),

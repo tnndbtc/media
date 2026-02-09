@@ -1,8 +1,10 @@
 """OpenAI API client wrapper."""
 
 import json
+import logging as std_logging
 from typing import Any
 
+import structlog
 from openai import AsyncOpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -110,14 +112,18 @@ class OpenAIClient:
         self,
         prompt: str,
         system_prompt: str | None = None,
-        temperature: float | None = None,
+        developer_prompt: str | None = None,
+        temperature: float = 0.3,
+        top_p: float = 0.9,
     ) -> dict[str, Any]:
         """Generate JSON completion.
 
         Args:
             prompt: User prompt
             system_prompt: System instruction
-            temperature: Override temperature
+            developer_prompt: Developer instruction (OpenAI role: developer)
+            temperature: Sampling temperature (default: 0.3)
+            top_p: Top-p sampling (default: 0.9)
 
         Returns:
             Parsed JSON response
@@ -129,19 +135,25 @@ class OpenAIClient:
 
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
+        if developer_prompt:
+            messages.append({"role": "developer", "content": developer_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        logger.info(
-            "openai_request",
-            system_prompt=system_prompt[:200] if system_prompt else None,
-            user_prompt=prompt[:500],
+        # Log request with model, temperature, top_p, and messages
+        ctx = structlog.contextvars.get_contextvars()
+        request_id = ctx.get("request_id", "unknown")
+        messages_log = json.dumps(messages, ensure_ascii=False)
+        std_logging.info(
+            f"openai_request - model={self.model} temperature={temperature} top_p={top_p} "
+            f"messages={messages_log} [request_id: {request_id}]"
         )
 
         try:
             response = await self._client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=temperature if temperature is not None else self.temperature,
+                temperature=temperature,
+                top_p=top_p,
                 max_tokens=self.max_tokens,
                 response_format={"type": "json_object"},
             )
@@ -153,10 +165,9 @@ class OpenAIClient:
                     service="openai",
                 )
 
-            logger.info(
-                "openai_response",
-                response=content[:1000],
-            )
+            usage = response.usage
+            tokens = usage.total_tokens if usage else 0
+            std_logging.info(f"openai_response - {tokens} tokens \"{content}\" [request_id: {request_id}]")
 
             return json.loads(content)
 

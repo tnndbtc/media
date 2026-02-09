@@ -1,15 +1,14 @@
 """Redis cache service."""
 
 import json
+import logging as std_logging
 from typing import Any, TypeVar
 
 import redis.asyncio as redis
+import structlog
 from pydantic import BaseModel
 
 from app.utils.exceptions import CacheError
-from app.utils.logging import get_logger
-
-logger = get_logger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -192,10 +191,14 @@ class CacheService:
         """
         cached = await self.get_json(key)
         if cached is not None:
-            logger.debug("cache_hit", key=key)
+            ctx = structlog.contextvars.get_contextvars()
+            request_id = ctx.get("request_id", "unknown")
+            std_logging.debug(f"cache_hit - {key} [request_id: {request_id}]")
             return cached
 
-        logger.debug("cache_miss", key=key)
+        ctx = structlog.contextvars.get_contextvars()
+        request_id = ctx.get("request_id", "unknown")
+        std_logging.debug(f"cache_miss - {key} [request_id: {request_id}]")
         value = await factory()
         if value is not None:
             await self.set_json(key, value, ttl)

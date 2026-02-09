@@ -1,8 +1,11 @@
 """Base HTTP client with retry logic and error handling."""
 
+import logging as std_logging
 from typing import Any
+from urllib.parse import urlencode
 
 import httpx
+import structlog
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -117,25 +120,18 @@ class BaseHTTPClient:
             )
 
         try:
-            # Log request at INFO level
-            logger.info(
-                f"{self.service_name}_request",
-                method=method,
-                url=url,
-                params=params,
-            )
+            # Log request at INFO level (single line with full URL)
+            full_url = f"{url}?{urlencode(params)}" if params else url
+            ctx = structlog.contextvars.get_contextvars()
+            request_id = ctx.get("request_id", "unknown")
+            std_logging.info(f"{self.service_name}_request - {method} {full_url} [request_id: {request_id}]")
 
             response = await self._circuit_breaker.call(_execute_request)
             result = self._handle_response(response)
 
-            # Log response at INFO level
-            logger.info(
-                f"{self.service_name}_response",
-                method=method,
-                url=url,
-                status_code=response.status_code,
-                result_count=len(result.get("hits", result.get("photos", result.get("videos", [])))),
-            )
+            # Log response at INFO level (single line)
+            result_count = len(result.get("hits", result.get("photos", result.get("videos", []))))
+            std_logging.info(f"{self.service_name}_response - {response.status_code} {result_count} results [request_id: {request_id}]")
 
             return result
 

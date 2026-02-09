@@ -98,7 +98,7 @@ class MediaFetcherAgent(BaseAgent[FetchInput, FetchResult]):
         # Create fetch tasks
         # Use bilingual keywords if available, otherwise fall back to english_query
         if input_data.query.bilingual_keywords:
-            search_query = " ".join(input_data.query.bilingual_keywords[:6])  # Limit to 6 keywords
+            search_query = " OR ".join(input_data.query.bilingual_keywords[:6])  # Limit to 6 keywords
         else:
             search_query = input_data.query.english_query
 

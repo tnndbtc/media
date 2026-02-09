@@ -1,6 +1,9 @@
 """Main search pipeline orchestrator."""
 
+import logging as std_logging
 import time
+
+import structlog
 
 from app.agents.language_detector import LanguageDetectorAgent
 from app.agents.media_fetcher import FetchInput, MediaFetcherAgent
@@ -15,9 +18,6 @@ from app.services.pexels import PexelsClient
 from app.services.pixabay import PixabayClient
 from app.services.prompt_service import PromptService
 from app.utils.hashing import generate_cache_key
-from app.utils.logging import get_logger
-
-logger = get_logger(__name__)
 
 
 class SearchPipeline:
@@ -117,11 +117,9 @@ class SearchPipeline:
                 cached=self.language_detector._last_cache_hit,
             )
         )
-        logger.info(
-            "language_detected",
-            code=language_info.code,
-            confidence=language_info.confidence,
-        )
+        ctx = structlog.contextvars.get_contextvars()
+        request_id = ctx.get("request_id", "unknown")
+        std_logging.info(f"language_detected - {language_info.code} confidence={language_info.confidence} [request_id: {request_id}]")
 
         # Step 2: Generate optimized query
         query_input = QueryInput(text=request.text, language_info=language_info)
@@ -135,12 +133,7 @@ class SearchPipeline:
         )
         query_time_ms = (time.perf_counter() - query_start) * 1000
 
-        logger.info(
-            "query_generated",
-            english_query=generated_query.english_query,
-            keywords=generated_query.keywords,
-            bilingual_keywords=generated_query.bilingual_keywords,
-        )
+        std_logging.info(f"query_generated - \"{generated_query.english_query}\" keywords={generated_query.bilingual_keywords} [request_id: {request_id}]")
 
         # Step 3: Fetch media from APIs
         fetch_input = FetchInput(
@@ -163,11 +156,7 @@ class SearchPipeline:
                 ApiCall(service="pixabay", method="search_images", cached=media_cached)
             )
 
-        logger.info(
-            "media_fetched",
-            total_found=fetch_result.total_found,
-            sources=fetch_result.sources_queried,
-        )
+        std_logging.info(f"media_fetched - {fetch_result.total_found} items from {fetch_result.sources_queried} [request_id: {request_id}]")
 
         # Step 4: Rank and deduplicate
         rank_input = RankInput(
@@ -184,11 +173,7 @@ class SearchPipeline:
                 ApiCall(service="openai", method="embed_batch", cached=False)
             )
 
-        logger.info(
-            "results_ranked",
-            returned=len(rank_result.items),
-            duplicates_removed=rank_result.duplicates_removed,
-        )
+        std_logging.info(f"results_ranked - {len(rank_result.items)} returned, {rank_result.duplicates_removed} duplicates removed [request_id: {request_id}]")
 
         # Build response
         processing_time_ms = (time.perf_counter() - start_time) * 1000
@@ -237,7 +222,7 @@ class SearchPipeline:
             if data:
                 return SearchResponse.model_validate(data)
         except Exception as e:
-            logger.warning("cache_get_failed", error=str(e))
+            std_logging.warning(f"cache_get_failed - error={str(e)}")
         return None
 
     async def _cache_response(self, key: str, response: SearchResponse) -> None:
@@ -249,4 +234,4 @@ class SearchPipeline:
                 ttl=self.settings.cache_ttl_seconds,
             )
         except Exception as e:
-            logger.warning("cache_set_failed", error=str(e))
+            std_logging.warning(f"cache_set_failed - error={str(e)}")

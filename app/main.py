@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import logging as std_logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncGenerator
@@ -14,42 +15,37 @@ from app.api.middleware import setup_middleware
 from app.api.routes import router
 from app.config.settings import get_settings
 from app.db.base import close_db, init_db
-from app.utils.logging import get_logger, setup_logging
+from app.utils.logging import setup_logging
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager."""
     settings = get_settings()
-    logger = get_logger(__name__)
 
     # Setup logging
     setup_logging(
         log_level=settings.log_level,
-        json_format=not settings.debug,
+        log_format=settings.log_format,
     )
 
-    logger.info(
-        "application_starting",
-        version=__version__,
-        debug=settings.debug,
-    )
+    std_logging.info(f"application_starting - version={__version__} debug={settings.debug}")
 
     # Initialize database
     await init_db()
-    logger.info("database_initialized")
+    std_logging.info("database_initialized")
 
     # Seed prompts from hardcoded defaults
     from app.db.seed import seed_system_prompts
 
     await seed_system_prompts()
-    logger.info("prompts_seeded")
+    std_logging.info("prompts_seeded")
 
     yield
 
     # Cleanup
     await close_db()
-    logger.info("application_shutdown")
+    std_logging.info("application_shutdown")
 
 
 def create_app() -> FastAPI:

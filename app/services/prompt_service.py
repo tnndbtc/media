@@ -1,16 +1,15 @@
 """Prompt service for resolving prompts with hierarchical overrides."""
 
+import logging as std_logging
 from functools import lru_cache
 from typing import Any
 
+import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.prompt import Prompt, PromptLevel
 from app.multilingual.prompts import HARDCODED_PROMPTS, get_hardcoded_prompt
-from app.utils.logging import get_logger
-
-logger = get_logger(__name__)
 
 
 class PromptCache:
@@ -86,11 +85,13 @@ class PromptService:
         """
         # Build cache key
         cache_key = f"{name}:{user_id or 'default'}"
+        ctx = structlog.contextvars.get_contextvars()
+        request_id = ctx.get("request_id", "unknown")
 
         # Check cache first
         cached = self.cache.get(cache_key)
         if cached is not None:
-            logger.debug("prompt_cache_hit", name=name)
+            std_logging.debug(f"prompt_cache_hit - {name} [request_id: {request_id}]")
             return cached
 
         # Try resolution hierarchy
@@ -103,24 +104,14 @@ class PromptService:
 
             prompt = await self._get_prompt_at_level(name, level)
             if prompt is not None:
-                logger.debug(
-                    "prompt_resolved",
-                    name=name,
-                    level=level.value,
-                    source="database",
-                )
+                std_logging.debug(f"prompt_resolved - {name} level={level.value} source=database [request_id: {request_id}]")
                 self.cache.set(cache_key, prompt)
                 return prompt
 
         # Fall back to hardcoded
         fallback = get_hardcoded_prompt(name)
         if fallback is not None:
-            logger.debug(
-                "prompt_resolved",
-                name=name,
-                level="hardcoded",
-                source="fallback",
-            )
+            std_logging.debug(f"prompt_resolved - {name} level=hardcoded source=fallback [request_id: {request_id}]")
             self.cache.set(cache_key, fallback)
             return fallback
 
@@ -248,12 +239,7 @@ class PromptService:
         # Invalidate cache for this prompt
         self.cache.invalidate(name)
 
-        logger.info(
-            "prompt_created",
-            id=prompt.id,
-            name=name,
-            level=level.value,
-        )
+        std_logging.info(f"prompt_created - id={prompt.id} name={name} level={level.value}")
 
         return prompt
 
@@ -293,11 +279,7 @@ class PromptService:
         if "name" in updates and updates["name"] != old_name:
             self.cache.invalidate(updates["name"])
 
-        logger.info(
-            "prompt_updated",
-            id=prompt_id,
-            version=prompt.version,
-        )
+        std_logging.info(f"prompt_updated - id={prompt_id} version={prompt.version}")
 
         return prompt
 
@@ -321,7 +303,7 @@ class PromptService:
         # Invalidate cache
         self.cache.invalidate(name)
 
-        logger.info("prompt_deleted", id=prompt_id, name=name)
+        std_logging.info(f"prompt_deleted - id={prompt_id} name={name}")
 
         return True
 
@@ -345,11 +327,7 @@ class PromptService:
         # Invalidate cache
         self.cache.invalidate(prompt.name)
 
-        logger.info(
-            "prompt_toggled",
-            id=prompt_id,
-            is_active=prompt.is_active,
-        )
+        std_logging.info(f"prompt_toggled - id={prompt_id} is_active={prompt.is_active}")
 
         return prompt
 

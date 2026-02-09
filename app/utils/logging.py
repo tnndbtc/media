@@ -1,5 +1,6 @@
 """Structured logging configuration using structlog."""
 
+import json
 import logging
 import sys
 from functools import lru_cache
@@ -7,12 +8,50 @@ from functools import lru_cache
 import structlog
 
 
-def setup_logging(log_level: str = "INFO", json_format: bool = False) -> None:
+class PrettyJsonRenderer:
+    """Custom renderer for human-readable logs with pretty-printed JSON.
+
+    Outputs logs in format:
+        LEVEL TIMESTAMP logger event - {
+          "key": "value",
+          ...
+        }
+    """
+
+    def __call__(
+        self,
+        logger: structlog.types.WrappedLogger,
+        method_name: str,
+        event_dict: structlog.types.EventDict,
+    ) -> str:
+        """Render the log event as a human-readable string with pretty JSON."""
+        timestamp = event_dict.pop("timestamp", "")
+        level = event_dict.pop("level", method_name).upper()
+        event = event_dict.pop("event", "")
+
+        # Build prefix: LEVEL TIMESTAMP logger event -
+        prefix = f"{level} {timestamp} {logger} {event} -"
+
+        if event_dict:
+            # Pretty-print the remaining data as JSON
+            json_str = json.dumps(event_dict, indent=2, ensure_ascii=False, default=str)
+            lines = json_str.split("\n")
+            # First line on same line as prefix, rest indented with prefix
+            if len(lines) > 1:
+                formatted_lines = [f"{prefix} {lines[0]}"]
+                for line in lines[1:]:
+                    formatted_lines.append(f"{prefix}   {line}")
+                return "\n".join(formatted_lines)
+            return f"{prefix} {json_str}"
+        return prefix
+
+
+def setup_logging(log_level: str = "INFO", log_format: str = "json") -> None:
     """Configure structured logging for the application.
 
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        json_format: If True, output logs in JSON format (for production)
+        log_format: Output format - "json" (compact), "pretty" (human-readable), "console" (colored dev)
     """
     # Configure standard library logging
     logging.basicConfig(
@@ -27,6 +66,7 @@ def setup_logging(log_level: str = "INFO", json_format: bool = False) -> None:
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("openai").setLevel(logging.WARNING)
     logging.getLogger("openai._base_client").setLevel(logging.WARNING)
+    logging.getLogger("aiosqlite").setLevel(logging.WARNING)
 
     # Common processors
     shared_processors: list[structlog.types.Processor] = [
@@ -37,35 +77,34 @@ def setup_logging(log_level: str = "INFO", json_format: bool = False) -> None:
         structlog.processors.UnicodeDecoder(),
     ]
 
-    if json_format:
-        # JSON format for production
-        structlog.configure(
-            processors=shared_processors
-            + [
-                structlog.processors.format_exc_info,
-                structlog.processors.JSONRenderer(ensure_ascii=False),
-            ],
-            wrapper_class=structlog.make_filtering_bound_logger(
-                getattr(logging, log_level.upper())
-            ),
-            context_class=dict,
-            logger_factory=structlog.PrintLoggerFactory(),
-            cache_logger_on_first_use=True,
-        )
+    # Select renderer based on log format
+    if log_format == "json":
+        # Compact JSON format for production
+        final_processors = shared_processors + [
+            structlog.processors.format_exc_info,
+            structlog.processors.JSONRenderer(ensure_ascii=False),
+        ]
+    elif log_format == "pretty":
+        # Human-readable format with pretty-printed JSON
+        final_processors = shared_processors + [
+            structlog.processors.format_exc_info,
+            PrettyJsonRenderer(),
+        ]
     else:
-        # Console format for development
-        structlog.configure(
-            processors=shared_processors
-            + [
-                structlog.dev.ConsoleRenderer(colors=True),
-            ],
-            wrapper_class=structlog.make_filtering_bound_logger(
-                getattr(logging, log_level.upper())
-            ),
-            context_class=dict,
-            logger_factory=structlog.PrintLoggerFactory(),
-            cache_logger_on_first_use=True,
-        )
+        # Console format for development (colored)
+        final_processors = shared_processors + [
+            structlog.dev.ConsoleRenderer(colors=True),
+        ]
+
+    structlog.configure(
+        processors=final_processors,
+        wrapper_class=structlog.make_filtering_bound_logger(
+            getattr(logging, log_level.upper())
+        ),
+        context_class=dict,
+        logger_factory=structlog.PrintLoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
 
 
 @lru_cache

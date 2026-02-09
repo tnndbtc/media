@@ -1,5 +1,8 @@
 """API route definitions."""
 
+import logging as std_logging
+
+import structlog
 from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
 
@@ -22,10 +25,6 @@ from app.models.responses import (
 from app.pipelines.analyze import AnalyzePipeline
 from app.pipelines.batch import BatchPipeline
 from app.pipelines.search import SearchPipeline
-from app.utils.logging import get_logger
-
-logger = get_logger(__name__)
-
 router = APIRouter()
 
 
@@ -142,7 +141,9 @@ async def search(
     Accepts text in any language, detects the language, generates optimized
     search queries, and returns ranked results from Pexels and Pixabay.
     """
-    logger.info("search_request", text=request.text[:50], media_types=request.media_type)
+    ctx = structlog.contextvars.get_contextvars()
+    request_id = ctx.get("request_id", "unknown")
+    std_logging.info(f"search_request - \"{request.text[:50]}\" media_types={request.media_type} [request_id: {request_id}]")
     return await pipeline.execute(request)
 
 
@@ -156,7 +157,9 @@ async def batch_search(
     Processes multiple search requests in parallel and optionally
     deduplicates results across all searches.
     """
-    logger.info("batch_search_request", count=len(request.searches))
+    ctx = structlog.contextvars.get_contextvars()
+    request_id = ctx.get("request_id", "unknown")
+    std_logging.info(f"batch_search_request - {len(request.searches)} searches [request_id: {request_id}]")
     return await pipeline.execute(request)
 
 
@@ -171,5 +174,7 @@ async def analyze(
     without actually searching for media. Useful for understanding how
     the system interprets input text.
     """
-    logger.info("analyze_request", text=request.text[:50])
+    ctx = structlog.contextvars.get_contextvars()
+    request_id = ctx.get("request_id", "unknown")
+    std_logging.info(f"analyze_request - \"{request.text[:50]}\" [request_id: {request_id}]")
     return await pipeline.execute(request)

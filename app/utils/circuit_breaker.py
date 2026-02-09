@@ -1,13 +1,12 @@
 """Circuit breaker pattern implementation."""
 
 import asyncio
+import logging as std_logging
 import time
 from enum import Enum
 from typing import Any, Callable, TypeVar
 
-from app.utils.logging import get_logger
-
-logger = get_logger(__name__)
+import structlog
 
 T = TypeVar("T")
 
@@ -114,7 +113,9 @@ class CircuitBreaker:
                 self._half_open_calls -= 1
                 if self._half_open_calls <= 0:
                     self._reset()
-                    logger.info("circuit_closed", service=self.name)
+                    ctx = structlog.contextvars.get_contextvars()
+                    request_id = ctx.get("request_id", "unknown")
+                    std_logging.info(f"circuit_closed - {self.name} [request_id: {request_id}]")
             else:
                 self._failure_count = 0
 
@@ -123,18 +124,16 @@ class CircuitBreaker:
         async with self._lock:
             self._failure_count += 1
             self._last_failure_time = time.time()
+            ctx = structlog.contextvars.get_contextvars()
+            request_id = ctx.get("request_id", "unknown")
 
             if self._state == CircuitState.HALF_OPEN:
                 self._state = CircuitState.OPEN
                 self._half_open_calls = 0
-                logger.warning("circuit_reopened", service=self.name)
+                std_logging.warning(f"circuit_reopened - {self.name} [request_id: {request_id}]")
             elif self._failure_count >= self.failure_threshold:
                 self._state = CircuitState.OPEN
-                logger.warning(
-                    "circuit_opened",
-                    service=self.name,
-                    failure_count=self._failure_count,
-                )
+                std_logging.warning(f"circuit_opened - {self.name} failures={self._failure_count} [request_id: {request_id}]")
 
     def _reset(self) -> None:
         """Reset circuit breaker to closed state."""

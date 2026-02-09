@@ -1,13 +1,12 @@
 """Seed system prompts from hardcoded defaults."""
 
+import logging as std_logging
+
 from sqlalchemy import select
 
 from app.db.models.prompt import Prompt, PromptLevel
 from app.db.session import AsyncSessionLocal
 from app.multilingual.prompts import HARDCODED_PROMPTS
-from app.utils.logging import get_logger
-
-logger = get_logger(__name__)
 
 
 async def seed_system_prompts() -> int:
@@ -42,11 +41,11 @@ async def seed_system_prompts() -> int:
                 )
                 session.add(prompt)
                 created_count += 1
-                logger.debug("prompt_seeded", name=name)
+                std_logging.debug(f"prompt_seeded - {name}")
 
         if created_count > 0:
             await session.commit()
-            logger.info("prompts_seeded", count=created_count)
+            std_logging.info(f"prompts_seeded - {created_count}")
 
         return created_count
 
@@ -91,6 +90,6 @@ async def reseed_system_prompts() -> int:
             updated_count += 1
 
         await session.commit()
-        logger.info("prompts_reseeded", count=updated_count)
+        std_logging.info(f"prompts_reseeded - {updated_count}")
 
         return updated_count

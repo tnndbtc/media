@@ -1,5 +1,6 @@
 """API middleware for logging, timing, and CORS."""
 
+import logging as std_logging
 import time
 import uuid
 from typing import Callable
@@ -8,10 +9,6 @@ import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-
-from app.utils.logging import get_logger
-
-logger = get_logger(__name__)
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
@@ -32,12 +29,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # Start timing
         start_time = time.perf_counter()
 
-        # Log request
-        logger.info(
-            "request_started",
-            query_params=str(request.query_params),
-            client_ip=request.client.host if request.client else None,
-        )
+        # Log request (single line)
+        client_ip = request.client.host if request.client else "unknown"
+        std_logging.info(f"request_started - {request.method} {request.url.path} [client: {client_ip}] [request_id: {request_id}]")
 
         # Process request
         try:
@@ -46,12 +40,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             # Calculate duration
             duration_ms = (time.perf_counter() - start_time) * 1000
 
-            # Log response
-            logger.info(
-                "request_completed",
-                status_code=response.status_code,
-                duration_ms=round(duration_ms, 2),
-            )
+            # Log response (single line)
+            std_logging.info(f"request_completed - {response.status_code} {round(duration_ms, 2)}ms [request_id: {request_id}]")
 
             # Add timing header
             response.headers["X-Request-ID"] = request_id

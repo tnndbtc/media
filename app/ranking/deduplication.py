@@ -1,9 +1,10 @@
 """Deduplication utilities for media results."""
 
-from app.models.media import MediaItem
-from app.utils.logging import get_logger
+import logging as std_logging
 
-logger = get_logger(__name__)
+import structlog
+
+from app.models.media import MediaItem
 
 
 def deduplicate_results(items: list[MediaItem]) -> tuple[list[MediaItem], int]:
@@ -53,7 +54,9 @@ def deduplicate_results(items: list[MediaItem]) -> tuple[list[MediaItem], int]:
         unique_items.append(item)
 
     if duplicates > 0:
-        logger.info("duplicates_removed", count=duplicates)
+        ctx = structlog.contextvars.get_contextvars()
+        request_id = ctx.get("request_id", "unknown")
+        std_logging.info(f"duplicates_removed - {duplicates} [request_id: {request_id}]")
 
     return unique_items, duplicates
 

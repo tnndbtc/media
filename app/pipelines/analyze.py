@@ -1,6 +1,9 @@
 """Text analysis pipeline without media fetching."""
 
+import logging as std_logging
 import time
+
+import structlog
 
 from app.agents.language_detector import LanguageDetectorAgent
 from app.agents.query_generator import QueryGeneratorAgent, QueryInput
@@ -10,9 +13,6 @@ from app.models.responses import AnalyzeResponse
 from app.services.cache import CacheService
 from app.services.openai_client import OpenAIClient
 from app.utils.hashing import generate_cache_key
-from app.utils.logging import get_logger
-
-logger = get_logger(__name__)
 
 
 class AnalyzePipeline:
@@ -69,11 +69,9 @@ class AnalyzePipeline:
 
         # Detect language
         language_info = await self.language_detector.execute(request.text)
-        logger.info(
-            "language_detected",
-            code=language_info.code,
-            confidence=language_info.confidence,
-        )
+        ctx = structlog.contextvars.get_contextvars()
+        request_id = ctx.get("request_id", "unknown")
+        std_logging.info(f"language_detected - {language_info.code} confidence={language_info.confidence} [request_id: {request_id}]")
 
         # Generate query analysis
         query_input = QueryInput(text=request.text, language_info=language_info)
@@ -144,7 +142,7 @@ class AnalyzePipeline:
             if data:
                 return AnalyzeResponse.model_validate(data)
         except Exception as e:
-            logger.warning("cache_get_failed", error=str(e))
+            std_logging.warning(f"cache_get_failed - error={str(e)}")
         return None
 
     async def _cache_response(self, key: str, response: AnalyzeResponse) -> None:
@@ -156,4 +154,4 @@ class AnalyzePipeline:
                 ttl=self.settings.cache_ttl_seconds,
             )
         except Exception as e:
-            logger.warning("cache_set_failed", error=str(e))
+            std_logging.warning(f"cache_set_failed - error={str(e)}")

@@ -1,6 +1,9 @@
 """Language detection agent."""
 
+import logging as std_logging
 from typing import Any
+
+import structlog
 
 from app.agents.base import BaseAgent
 from app.models.query import LanguageInfo
@@ -51,10 +54,9 @@ class LanguageDetectorAgent(BaseAgent[str, LanguageInfo]):
 
         # Use OpenAI fallback for low confidence
         if result.confidence < self.confidence_threshold and self.openai_client:
-            self.logger.info(
-                "using_openai_fallback",
-                initial_confidence=result.confidence,
-            )
+            ctx = structlog.contextvars.get_contextvars()
+            request_id = ctx.get("request_id", "unknown")
+            std_logging.info(f"using_openai_fallback - confidence={result.confidence} [request_id: {request_id}]")
             result = await self._openai_detect(text, result)
 
         return result
@@ -92,7 +94,9 @@ Text: {text[:500]}"""
             )
 
         except Exception as e:
-            self.logger.warning("openai_detection_failed", error=str(e))
+            ctx = structlog.contextvars.get_contextvars()
+            request_id = ctx.get("request_id", "unknown")
+            std_logging.warning(f"openai_detection_failed - error={str(e)} [request_id: {request_id}]")
             return initial_result
 
     def _deserialize_output(self, data: dict[str, Any]) -> LanguageInfo:

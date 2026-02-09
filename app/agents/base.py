@@ -1,13 +1,13 @@
 """Base agent class for all AI agents."""
 
+import logging as std_logging
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
+import structlog
+
 from app.services.cache import CacheService
 from app.utils.hashing import generate_cache_key
-from app.utils.logging import get_logger
-
-logger = get_logger(__name__)
 
 InputT = TypeVar("InputT")
 OutputT = TypeVar("OutputT")
@@ -35,7 +35,6 @@ class BaseAgent(ABC, Generic[InputT, OutputT]):
             cache: Optional cache service for result caching
         """
         self.cache = cache
-        self.logger = get_logger(f"agent.{self.name}")
         self._last_cache_hit: bool = False
 
     @abstractmethod
@@ -76,7 +75,9 @@ class BaseAgent(ABC, Generic[InputT, OutputT]):
         Returns:
             Processed output (from cache or fresh processing)
         """
-        self.logger.info("agent_execute_start", input_type=type(input_data).__name__)
+        ctx = structlog.contextvars.get_contextvars()
+        request_id = ctx.get("request_id", "unknown")
+        std_logging.info(f"agent_execute_start - {self.name} input={type(input_data).__name__} [request_id: {request_id}]")
         self._last_cache_hit = False
 
         # Check cache
@@ -84,14 +85,14 @@ class BaseAgent(ABC, Generic[InputT, OutputT]):
             cache_key = self._get_cache_key(input_data)
             cached = await self._get_from_cache(cache_key)
             if cached is not None:
-                self.logger.info("agent_cache_hit", cache_key=cache_key)
+                std_logging.info(f"agent_cache_hit - {self.name} [request_id: {request_id}]")
                 self._last_cache_hit = True
                 return cached
 
         # Process
         try:
             result = await self.process(input_data)
-            self.logger.info("agent_execute_success")
+            std_logging.info(f"agent_execute_success - {self.name} [request_id: {request_id}]")
 
             # Cache result
             if self.cache_enabled and self.cache:
@@ -100,7 +101,7 @@ class BaseAgent(ABC, Generic[InputT, OutputT]):
             return result
 
         except Exception as e:
-            self.logger.error("agent_execute_error", error=str(e))
+            std_logging.error(f"agent_execute_error - {self.name} error={str(e)} [request_id: {request_id}]")
             raise
 
     async def _get_from_cache(self, key: str) -> OutputT | None:

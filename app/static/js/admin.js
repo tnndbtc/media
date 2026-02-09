@@ -87,10 +87,10 @@ async function loadPrompts() {
 
     // Filter by OpenAI role using name pattern
     if (roleFilter === 'system') {
-        // Append SYSTEM to name filter to find system role prompts
         name = name ? name + ' SYSTEM' : 'SYSTEM';
+    } else if (roleFilter === 'developer') {
+        name = name ? name + ' DEVELOPER' : 'DEVELOPER';
     } else if (roleFilter === 'user') {
-        // For user role, we'll filter client-side after fetching
         name = name ? name + ' USER_TEMPLATE' : 'USER_TEMPLATE';
     }
 
@@ -416,8 +416,9 @@ function goToPage(page) {
 // Utility Functions
 function getOpenAIRole(promptName) {
     // Determine OpenAI role based on prompt name
-    // Names containing "SYSTEM" are sent as system role, others as user role
-    return promptName.includes('SYSTEM') ? 'system' : 'user';
+    if (promptName.includes('SYSTEM')) return 'system';
+    if (promptName.includes('DEVELOPER')) return 'developer';
+    return 'user';
 }
 
 function escapeHtml(text) {

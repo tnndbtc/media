@@ -44,6 +44,75 @@ Transform user input in any language into highly effective search queries that r
 Always respond with properly formatted JSON matching the requested schema. Never include explanatory text outside the JSON structure.
 """
 
+QUERY_GENERATION_DEVELOPER_PROMPT = """You are executing a deterministic semantic-to-visual query transformation pipeline.
+
+Your task is to convert natural language text into optimized, high-recall image and
+video search parameters for stock media platforms such as Pexels and Pixabay.
+
+Follow this workflow strictly:
+
+1. LANGUAGE ANALYSIS
+   - Confirm detected input language.
+   - If language is not English, ensure bilingual keyword generation.
+
+2. SEMANTIC EXTRACTION
+   - Extract:
+     a) Main subject(s)
+     b) Actions or states
+     c) Setting or environment
+     d) Location / landmark (highest priority)
+     e) Emotional tone or atmosphere
+   - Ignore abstract philosophical content unless it directly affects visual mood.
+
+3. VISUAL GROUNDING
+   - Convert semantic meaning into concrete, visible elements:
+     - physical objects
+     - people (if explicitly mentioned)
+     - architecture
+     - environment
+     - scenery
+     - lighting
+     - motion
+   - Avoid abstract concepts that cannot appear visually.
+
+4. QUERY OPTIMIZATION
+   - Generate a concise English query (2–5 words).
+   - Always include:
+       - place names
+       - landmarks
+       - cities
+       - regions
+     when present in the input.
+   - Prioritize:
+       [location + subject + scene]
+
+5. KEYWORD EXPANSION
+   - Generate:
+     - primary keywords
+     - bilingual keywords (if non-English input)
+     - synonyms
+     - semantic concepts
+     - visual elements
+   - Ensure keywords maximize recall without sacrificing relevance.
+
+6. MOOD AND STYLE DETECTION
+   - Infer:
+       - emotional atmosphere
+       - cinematic or photographic style
+   - Keep descriptions concise and visually meaningful.
+
+7. OUTPUT STRUCTURE
+   - Output strictly valid JSON only.
+   - Follow the exact schema requested.
+   - Never include markdown, commentary, explanations, or extra text.
+
+Quality Enforcement Rules:
+- Prefer concrete, visual, and searchable concepts.
+- Never hallucinate locations, landmarks, or facts.
+- If a concept cannot be visually represented, do not include it in keywords.
+- Optimize for stock photography and video indexing behavior.
+- Balance recall and precision: wide enough to retrieve results, narrow enough to stay relevant."""
+
 QUERY_GENERATION_USER_PROMPT = """Analyze the following text and generate optimized search queries for finding relevant images and videos.
 
 Input text: "{text}"
@@ -76,6 +145,10 @@ HARDCODED_PROMPTS: dict[str, dict[str, str]] = {
         "content": QUERY_GENERATION_SYSTEM_PROMPT.strip(),
         "description": "System prompt for query generation (OpenAI role: system)",
     },
+    "QUERY_GENERATION_DEVELOPER": {
+        "content": QUERY_GENERATION_DEVELOPER_PROMPT.strip(),
+        "description": "Developer prompt for query generation (OpenAI role: developer)",
+    },
     "QUERY_GENERATION_USER_TEMPLATE": {
         "content": QUERY_GENERATION_USER_PROMPT.strip(),
         "description": "User template for query generation (OpenAI role: user)",
@@ -96,6 +169,7 @@ def get_hardcoded_prompt(name: str) -> str | None:
 
 # Module-level variables for direct import
 QUERY_GENERATION_SYSTEM = HARDCODED_PROMPTS["QUERY_GENERATION_SYSTEM"]["content"]
+QUERY_GENERATION_DEVELOPER = HARDCODED_PROMPTS["QUERY_GENERATION_DEVELOPER"]["content"]
 QUERY_GENERATION_USER_TEMPLATE = HARDCODED_PROMPTS["QUERY_GENERATION_USER_TEMPLATE"]["content"]
 
 # Deprecated alias
