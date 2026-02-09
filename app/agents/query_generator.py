@@ -4,7 +4,7 @@ from typing import Any
 
 from app.agents.base import BaseAgent
 from app.models.query import GeneratedQuery, LanguageInfo
-from app.multilingual.prompts import QUERY_GENERATION_PROMPT, QUERY_GENERATION_SYSTEM
+from app.multilingual.prompts import QUERY_GENERATION_SYSTEM, QUERY_GENERATION_USER_TEMPLATE
 from app.services.cache import CacheService
 from app.services.openai_client import OpenAIClient
 from app.services.prompt_service import PromptService
@@ -64,10 +64,10 @@ class QueryGeneratorAgent(BaseAgent[QueryInput, GeneratedQuery]):
         """
         if self.prompt_service is not None:
             system_prompt = await self.prompt_service.get_prompt("QUERY_GENERATION_SYSTEM")
-            user_prompt = await self.prompt_service.get_prompt("QUERY_GENERATION_PROMPT")
+            user_prompt = await self.prompt_service.get_prompt("QUERY_GENERATION_USER_TEMPLATE")
             return system_prompt, user_prompt
         # Fallback to hardcoded prompts
-        return QUERY_GENERATION_SYSTEM, QUERY_GENERATION_PROMPT
+        return QUERY_GENERATION_SYSTEM, QUERY_GENERATION_USER_TEMPLATE
 
     async def process(self, input_data: QueryInput) -> GeneratedQuery:
         """Generate optimized search query.

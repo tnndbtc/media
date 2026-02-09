@@ -21,6 +21,13 @@ def setup_logging(log_level: str = "INFO", json_format: bool = False) -> None:
         level=getattr(logging, log_level.upper()),
     )
 
+    # Suppress verbose HTTP transport logs (httpx, httpcore, openai internal)
+    # These should only show at DEBUG level
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("openai").setLevel(logging.WARNING)
+    logging.getLogger("openai._base_client").setLevel(logging.WARNING)
+
     # Common processors
     shared_processors: list[structlog.types.Processor] = [
         structlog.contextvars.merge_contextvars,

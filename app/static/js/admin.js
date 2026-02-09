@@ -76,8 +76,8 @@ function setupEventListeners() {
 
 // API Functions
 async function loadPrompts() {
-    const name = document.getElementById('filter-name').value;
-    const level = document.getElementById('filter-level').value;
+    let name = document.getElementById('filter-name').value;
+    const roleFilter = document.getElementById('filter-level').value;
     const isActive = document.getElementById('filter-active').value;
 
     const params = new URLSearchParams({
@@ -85,8 +85,16 @@ async function loadPrompts() {
         page_size: pageSize,
     });
 
+    // Filter by OpenAI role using name pattern
+    if (roleFilter === 'system') {
+        // Append SYSTEM to name filter to find system role prompts
+        name = name ? name + ' SYSTEM' : 'SYSTEM';
+    } else if (roleFilter === 'user') {
+        // For user role, we'll filter client-side after fetching
+        name = name ? name + ' USER_TEMPLATE' : 'USER_TEMPLATE';
+    }
+
     if (name) params.append('name', name);
-    if (level) params.append('level', level);
     if (isActive) params.append('is_active', isActive);
 
     try {
@@ -190,7 +198,9 @@ function renderPrompts(prompts) {
         return;
     }
 
-    promptsBody.innerHTML = prompts.map(prompt => `
+    promptsBody.innerHTML = prompts.map(prompt => {
+        const openaiRole = getOpenAIRole(prompt.name);
+        return `
         <tr>
             <td>${prompt.id}</td>
             <td>
@@ -198,7 +208,7 @@ function renderPrompts(prompts) {
                     ${escapeHtml(prompt.name)}
                 </a>
             </td>
-            <td><span class="badge badge-${prompt.level}">${prompt.level}</span></td>
+            <td><span class="badge badge-${openaiRole}">${openaiRole}</span></td>
             <td class="truncate">${escapeHtml(prompt.description || '-')}</td>
             <td>v${prompt.version}</td>
             <td>
@@ -224,7 +234,7 @@ function renderPrompts(prompts) {
                 </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
 function renderPagination(total, page, totalPages) {
@@ -303,8 +313,9 @@ async function viewPrompt(id) {
 
         const prompt = await response.json();
 
+        const openaiRole = getOpenAIRole(prompt.name);
         document.getElementById('view-modal-title').textContent = prompt.name;
-        document.getElementById('view-level').textContent = prompt.level;
+        document.getElementById('view-role').textContent = openaiRole;
         document.getElementById('view-version').textContent = `v${prompt.version}`;
 
         const statusEl = document.getElementById('view-status');
@@ -403,6 +414,12 @@ function goToPage(page) {
 }
 
 // Utility Functions
+function getOpenAIRole(promptName) {
+    // Determine OpenAI role based on prompt name
+    // Names containing "SYSTEM" are sent as system role, others as user role
+    return promptName.includes('SYSTEM') ? 'system' : 'user';
+}
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;

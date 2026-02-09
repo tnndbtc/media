@@ -84,3 +84,5 @@ data/*.db
 # Keep data directory but ignore contents
 data/*
 !data/.gitkeep
+
+docs/todo*

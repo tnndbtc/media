@@ -117,8 +117,27 @@ class BaseHTTPClient:
             )
 
         try:
+            # Log request at INFO level
+            logger.info(
+                f"{self.service_name}_request",
+                method=method,
+                url=url,
+                params=params,
+            )
+
             response = await self._circuit_breaker.call(_execute_request)
-            return self._handle_response(response)
+            result = self._handle_response(response)
+
+            # Log response at INFO level
+            logger.info(
+                f"{self.service_name}_response",
+                method=method,
+                url=url,
+                status_code=response.status_code,
+                result_count=len(result.get("hits", result.get("photos", result.get("videos", [])))),
+            )
+
+            return result
 
         except httpx.TimeoutException as e:
             logger.error("request_timeout", service=self.service_name, url=url)

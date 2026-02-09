@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # Cache Settings
     cache_ttl_seconds: int = Field(default=3600, ge=60, le=86400)
-    cache_enabled: bool = Field(default=True)
+    cache_enabled: bool = Field(default=False)
 
     # API Settings
     api_host: str = Field(default="0.0.0.0")

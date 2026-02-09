@@ -7,14 +7,14 @@
     --success: #10b981;
     --danger: #ef4444;
     --warning: #f59e0b;
-    --bg: #0f172a;
-    --bg-card: #1e293b;
-    --bg-input: #334155;
-    --text: #f1f5f9;
-    --text-muted: #94a3b8;
-    --border: #475569;
+    --bg: #ffffff;
+    --bg-card: #f8fafc;
+    --bg-input: #f1f5f9;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
     --radius: 8px;
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -189,7 +189,7 @@ header h1 {
 }
 
 .table th {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: #f1f5f9;
     font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
@@ -198,7 +198,7 @@ header h1 {
 }
 
 .table tbody tr:hover {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: #f8fafc;
 }
 
 .table tbody tr:last-child td {
@@ -215,28 +215,28 @@ header h1 {
 }
 
 .badge-system {
-    background-color: rgba(59, 130, 246, 0.2);
-    color: #60a5fa;
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #2563eb;
 }
 
 .badge-developer {
-    background-color: rgba(139, 92, 246, 0.2);
-    color: #a78bfa;
+    background-color: rgba(139, 92, 246, 0.15);
+    color: #7c3aed;
 }
 
 .badge-user {
-    background-color: rgba(16, 185, 129, 0.2);
-    color: #34d399;
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #059669;
 }
 
 .badge-active {
-    background-color: rgba(16, 185, 129, 0.2);
-    color: #34d399;
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #059669;
 }
 
 .badge-inactive {
-    background-color: rgba(239, 68, 68, 0.2);
-    color: #f87171;
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
 }
 
 /* Pagination */
@@ -262,7 +262,7 @@ header h1 {
 .modal {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -380,23 +380,23 @@ header h1 {
 }
 
 .view-level {
-    background-color: rgba(59, 130, 246, 0.2);
-    color: #60a5fa;
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #2563eb;
 }
 
 .view-version {
-    background-color: rgba(107, 114, 128, 0.2);
+    background-color: rgba(107, 114, 128, 0.15);
     color: var(--text-muted);
 }
 
 .view-status.active {
-    background-color: rgba(16, 185, 129, 0.2);
-    color: #34d399;
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #059669;
 }
 
 .view-status.inactive {
-    background-color: rgba(239, 68, 68, 0.2);
-    color: #f87171;
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
 }
 
 .view-description {
@@ -406,7 +406,7 @@ header h1 {
 }
 
 .view-prompt {
-    background-color: var(--bg);
+    background-color: #f1f5f9;
     border-radius: var(--radius);
     padding: 1rem;
     overflow-x: auto;
