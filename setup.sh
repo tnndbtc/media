@@ -34,6 +34,7 @@ print_menu() {
     echo -e "${BLUE}2)${NC} Stop Docker containers"
     echo -e "${BLUE}3)${NC} View container logs"
     echo -e "${BLUE}4)${NC} Backup database"
+    echo -e "${BLUE}5)${NC} Show service URL"
     echo -e "${BLUE}0)${NC} Exit"
     echo -e "${CYAN}=====================================${NC}"
 }
@@ -154,6 +155,21 @@ backup_database() {
     fi
 }
 
+# Function to show service URL
+show_service_url() {
+    local private_ip=$(hostname -I | awk '{print $1}')
+
+    if [[ -z "$private_ip" ]]; then
+        echo -e "${RED}Error: Could not determine private IP address.${NC}"
+        return 1
+    fi
+
+    echo -e "${GREEN}Service URLs:${NC}"
+    echo -e "${CYAN}  API:      http://${private_ip}:28000${NC}"
+    echo -e "${CYAN}  Docs:     http://${private_ip}:28000/docs${NC}"
+    echo -e "${CYAN}  Health:   http://${private_ip}:28000/health${NC}"
+}
+
 # Main menu loop
 main() {
     while true; do
@@ -161,7 +177,7 @@ main() {
         print_header
         print_menu
 
-        read -p "Select an option [0-4]: " choice
+        read -p "Select an option [0-5]: " choice
         echo ""
 
         case $choice in
@@ -177,12 +193,15 @@ main() {
             4)
                 backup_database
                 ;;
+            5)
+                show_service_url
+                ;;
             0)
                 echo -e "${GREEN}Goodbye!${NC}"
                 exit 0
                 ;;
             *)
-                echo -e "${RED}Invalid option. Please select 0-4.${NC}"
+                echo -e "${RED}Invalid option. Please select 0-5.${NC}"
                 ;;
         esac
     done
