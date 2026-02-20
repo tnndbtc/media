@@ -1,5 +1,14 @@
 """Pytest fixtures for testing."""
 
+import os
+
+# Set dummy API keys before any app imports so that Settings() validation
+# succeeds during pytest collection (app/db/session.py calls get_settings()
+# at module level, which requires all required fields to be present).
+os.environ.setdefault("PEXELS_API_KEY", "test-pexels-key")
+os.environ.setdefault("PIXABAY_API_KEY", "test-pixabay-key")
+os.environ.setdefault("OPENAI_API_KEY", "sk-test-openai-key")
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
