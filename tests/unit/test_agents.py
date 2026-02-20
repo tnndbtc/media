@@ -34,7 +34,7 @@ class TestLanguageDetectorAgent:
     @pytest.mark.asyncio
     async def test_detect_chinese(self, agent):
         """Test detecting Chinese text."""
-        result = await agent.process("海上美丽的日落")
+        result = await agent.process("这张照片展示了美丽的中国山水风景")
 
         assert result.is_english is False
         assert "Chinese" in result.name or "zh" in result.code

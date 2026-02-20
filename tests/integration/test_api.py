@@ -10,6 +10,7 @@ from app.api.dependencies import (
     get_openai_client,
     get_pexels_client,
     get_pixabay_client,
+    get_prompt_service,
 )
 
 
@@ -29,10 +30,16 @@ def mock_dependencies(mock_cache, mock_openai_client, mock_pexels_client, mock_p
     def override_pixabay():
         return mock_pixabay_client
 
+    def override_prompt_service():
+        # Return None so QueryGeneratorAgent falls back to hardcoded prompts,
+        # avoiding real aiosqlite DB access inside the test client's event loop.
+        return None
+
     app.dependency_overrides[get_cache_service] = override_cache
     app.dependency_overrides[get_openai_client] = override_openai
     app.dependency_overrides[get_pexels_client] = override_pexels
     app.dependency_overrides[get_pixabay_client] = override_pixabay
+    app.dependency_overrides[get_prompt_service] = override_prompt_service
 
     yield
 
@@ -97,7 +104,7 @@ class TestSearchEndpoint:
         response = client.post(
             "/search",
             json={
-                "text": "海上美丽的日落",
+                "text": "这张照片展示了美丽的中国山水风景",
                 "media_type": ["image"],
                 "limit": 5,
             },

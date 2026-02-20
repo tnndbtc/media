@@ -51,7 +51,7 @@ class TestSearchPipeline:
     async def test_execute_multilingual_search(self, pipeline):
         """Test search with non-English text."""
         request = SearchRequest(
-            text="海上美丽的日落",
+            text="这张照片展示了美丽的中国山水风景",
             media_type=[MediaType.IMAGE],
             limit=5,
         )

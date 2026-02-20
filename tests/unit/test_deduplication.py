@@ -17,8 +17,8 @@ def create_media_item(
         source=source,
         media_type=MediaType.IMAGE,
         urls=MediaUrls(
-            original=f"https://example.com/{id_suffix}{url_suffix}.jpg",
-            large=f"https://example.com/{id_suffix}_large.jpg",
+            original=f"https://example.com/{source.value}/{id_suffix}{url_suffix}.jpg",
+            large=f"https://example.com/{source.value}/{id_suffix}_large.jpg",
         ),
         dimensions=MediaDimensions(width=1920, height=1080),
         source_url=f"https://example.com/photo/{id_suffix}",

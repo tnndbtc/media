@@ -8,6 +8,7 @@ import structlog
 
 from app.services.cache import CacheService
 from app.utils.hashing import generate_cache_key
+from app.utils.logging import get_logger
 
 InputT = TypeVar("InputT")
 OutputT = TypeVar("OutputT")
@@ -36,6 +37,7 @@ class BaseAgent(ABC, Generic[InputT, OutputT]):
         """
         self.cache = cache
         self._last_cache_hit: bool = False
+        self.logger = get_logger(self.name)
 
     @abstractmethod
     async def process(self, input_data: InputT) -> OutputT:

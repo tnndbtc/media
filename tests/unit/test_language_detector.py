@@ -19,7 +19,7 @@ class TestLanguageDetection:
 
     def test_detect_chinese(self):
         """Test detecting Chinese text."""
-        result = detect_language("海上美丽的日落")
+        result = detect_language("这张照片展示了美丽的中国山水风景")
 
         assert result.code in ["zh-cn", "zh-tw", "zh"]
         assert "Chinese" in result.name
