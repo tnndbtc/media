@@ -35,6 +35,7 @@ print_menu() {
     echo -e "${BLUE}3)${NC} View container logs"
     echo -e "${BLUE}4)${NC} Backup database"
     echo -e "${BLUE}5)${NC} Show service URL"
+    echo -e "${BLUE}6)${NC} Run tests"
     echo -e "${BLUE}0)${NC} Exit"
     echo -e "${CYAN}=====================================${NC}"
 }
@@ -155,6 +156,39 @@ backup_database() {
     fi
 }
 
+# Function to run tests
+run_tests() {
+    echo -e "${YELLOW}Running tests...${NC}"
+
+    # Resolve the directory containing this script so the command works
+    # regardless of where setup.sh is invoked from.
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # Prefer the project virtual environment if it exists; otherwise fall
+    # back to whatever pytest is on PATH.
+    local pytest_cmd
+    if [[ -f "${script_dir}/.venv/bin/pytest" ]]; then
+        pytest_cmd="${script_dir}/.venv/bin/pytest"
+    elif [[ -f "${HOME}/.virtualenvs/media/bin/pytest" ]]; then
+        pytest_cmd="${HOME}/.virtualenvs/media/bin/pytest"
+    elif command -v pytest &>/dev/null; then
+        pytest_cmd="pytest"
+    else
+        echo -e "${RED}Error: pytest not found. Install dependencies first (pip install -e '.[dev]').${NC}"
+        return 1
+    fi
+
+    (cd "$script_dir" && "$pytest_cmd" -q)
+
+    if [[ $? -eq 0 ]]; then
+        echo -e "${GREEN}All tests passed!${NC}"
+    else
+        echo -e "${RED}Some tests failed.${NC}"
+        return 1
+    fi
+}
+
 # Function to show service URL
 show_service_url() {
     local private_ip=$(hostname -I | awk '{print $1}')
@@ -177,7 +211,7 @@ main() {
         print_header
         print_menu
 
-        read -p "Select an option [0-5]: " choice
+        read -p "Select an option [0-6]: " choice
         echo ""
 
         case $choice in
@@ -196,12 +230,15 @@ main() {
             5)
                 show_service_url
                 ;;
+            6)
+                run_tests
+                ;;
             0)
                 echo -e "${GREEN}Goodbye!${NC}"
                 exit 0
                 ;;
             *)
-                echo -e "${RED}Invalid option. Please select 0-5.${NC}"
+                echo -e "${RED}Invalid option. Please select 0-6.${NC}"
                 ;;
         esac
     done
