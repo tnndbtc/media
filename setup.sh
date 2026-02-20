@@ -36,6 +36,7 @@ print_menu() {
     echo -e "${BLUE}4)${NC} Backup database"
     echo -e "${BLUE}5)${NC} Show service URL"
     echo -e "${BLUE}6)${NC} Run tests"
+    echo -e "${BLUE}7)${NC} Install dependencies (requirements.txt)"
     echo -e "${BLUE}0)${NC} Exit"
     echo -e "${CYAN}=====================================${NC}"
 }
@@ -189,6 +190,41 @@ run_tests() {
     fi
 }
 
+# Function to install Python dependencies from requirements.txt
+install_requirements() {
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    local pip_cmd
+    if [[ -f "${script_dir}/.venv/bin/pip" ]]; then
+        pip_cmd="${script_dir}/.venv/bin/pip"
+    elif [[ -f "${HOME}/.virtualenvs/media/bin/pip" ]]; then
+        pip_cmd="${HOME}/.virtualenvs/media/bin/pip"
+    elif command -v pip3 &>/dev/null; then
+        pip_cmd="pip3"
+    elif command -v pip &>/dev/null; then
+        pip_cmd="pip"
+    else
+        echo -e "${RED}Error: pip not found. Please install Python/pip first.${NC}"
+        return 1
+    fi
+
+    if [[ ! -f "${script_dir}/requirements.txt" ]]; then
+        echo -e "${RED}Error: requirements.txt not found in ${script_dir}.${NC}"
+        return 1
+    fi
+
+    echo -e "${YELLOW}Installing dependencies from requirements.txt...${NC}"
+    "$pip_cmd" install -r "${script_dir}/requirements.txt"
+
+    if [[ $? -eq 0 ]]; then
+        echo -e "${GREEN}Dependencies installed successfully!${NC}"
+    else
+        echo -e "${RED}Failed to install dependencies.${NC}"
+        return 1
+    fi
+}
+
 # Function to show service URL
 show_service_url() {
     local private_ip=$(hostname -I | awk '{print $1}')
@@ -211,7 +247,7 @@ main() {
         print_header
         print_menu
 
-        read -p "Select an option [0-6]: " choice
+        read -p "Select an option [0-7]: " choice
         echo ""
 
         case $choice in
@@ -233,12 +269,15 @@ main() {
             6)
                 run_tests
                 ;;
+            7)
+                install_requirements
+                ;;
             0)
                 echo -e "${GREEN}Goodbye!${NC}"
                 exit 0
                 ;;
             *)
-                echo -e "${RED}Invalid option. Please select 0-6.${NC}"
+                echo -e "${RED}Invalid option. Please select 0-7.${NC}"
                 ;;
         esac
     done
