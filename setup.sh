@@ -37,6 +37,7 @@ print_menu() {
     echo -e "${BLUE}5)${NC} Show service URL"
     echo -e "${BLUE}6)${NC} Run tests"
     echo -e "${BLUE}7)${NC} Install dependencies (requirements.txt)"
+    echo -e "${BLUE}8)${NC} Show usage (generate_media.py)"
     echo -e "${BLUE}0)${NC} Exit"
     echo -e "${CYAN}=====================================${NC}"
 }
@@ -180,6 +181,7 @@ run_tests() {
         return 1
     fi
 
+    echo -e "${CYAN}$ (cd \"${script_dir}\" && \"${pytest_cmd}\" -q)${NC}"
     (cd "$script_dir" && "$pytest_cmd" -q)
 
     if [[ $? -eq 0 ]]; then
@@ -188,6 +190,54 @@ run_tests() {
         echo -e "${RED}Some tests failed.${NC}"
         return 1
     fi
+
+    # --- Real workflow test: generate_media.py against e2e golden ---
+    echo ""
+    echo -e "${YELLOW}Running real workflow: generate_media.py...${NC}"
+
+    local input="${script_dir}/third_party/contracts/goldens/e2e/example_episode/AssetManifest.json"
+    local timestamp
+    timestamp="$(date '+%Y-%m-%d_%H-%M-%S')"
+    local output="/tmp/AssetManifest.media_${timestamp}.json"
+
+    local python_cmd
+    if [[ -f "${script_dir}/.venv/bin/python" ]]; then
+        python_cmd="${script_dir}/.venv/bin/python"
+    elif [[ -f "${HOME}/.virtualenvs/media/bin/python" ]]; then
+        python_cmd="${HOME}/.virtualenvs/media/bin/python"
+    elif command -v python3 &>/dev/null; then
+        python_cmd="python3"
+    else
+        python_cmd="python"
+    fi
+
+    echo -e "${CYAN}$ \"${python_cmd}\" scripts/generate_media.py \\${NC}"
+    echo -e "${CYAN}      --input  \"${input}\" \\${NC}"
+    echo -e "${CYAN}      --output \"${output}\"${NC}"
+    (cd "$script_dir" && "$python_cmd" scripts/generate_media.py \
+        --input  "$input" \
+        --output "$output")
+
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED}Workflow test failed.${NC}"
+        return 1
+    fi
+
+    echo -e "${CYAN}$ ls -l \"${output}\"${NC}"
+    ls -l "$output"
+
+    local size
+    size=$(stat -c%s "$output" 2>/dev/null || stat -f%z "$output" 2>/dev/null)
+    if [[ -z "$size" || "$size" -eq 0 ]]; then
+        echo -e "${RED}Error: output file is empty.${NC}"
+        rm -f "$output"
+        return 1
+    fi
+
+    echo -e "${GREEN}Workflow test passed! (${size} bytes)${NC}"
+    echo -e "${CYAN}$ rm \"${output}\"${NC}"
+    rm -f "$output"
+    echo -e "${GREEN}Output cleaned up.${NC}"
 }
 
 # Function to install Python dependencies from requirements.txt
@@ -225,6 +275,44 @@ install_requirements() {
     fi
 }
 
+# Function to show generate_media.py usage
+show_generate_usage() {
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    echo -e "${GREEN}generate_media.py — resolve an AssetManifest into AssetManifest.media.json${NC}"
+    echo ""
+    echo -e "${CYAN}Basic usage:${NC}"
+    echo -e "  python ${script_dir}/scripts/generate_media.py \\"
+    echo -e "      --input  /path/to/AssetManifest.json \\"
+    echo -e "      --output /path/to/AssetManifest.media.json"
+    echo ""
+    echo -e "${CYAN}Fail if any asset is missing (no placeholders allowed):${NC}"
+    echo -e "  python ${script_dir}/scripts/generate_media.py \\"
+    echo -e "      --input  /path/to/AssetManifest.json \\"
+    echo -e "      --output /path/to/AssetManifest.media.json \\"
+    echo -e "      --strict"
+    echo ""
+    echo -e "${CYAN}Short flags:${NC}"
+    echo -e "  python ${script_dir}/scripts/generate_media.py \\"
+    echo -e "      -i /path/to/AssetManifest.json \\"
+    echo -e "      -o /path/to/AssetManifest.media.json"
+    echo ""
+    echo -e "${CYAN}Via make:${NC}"
+    echo -e "  make generate-media \\"
+    echo -e "      INPUT=/path/to/AssetManifest.json \\"
+    echo -e "      OUTPUT=/path/to/AssetManifest.media.json"
+    echo ""
+    echo -e "${CYAN}Environment variables (optional):${NC}"
+    echo -e "  MEDIA_LIBRARY_ROOT   — path to local asset library"
+    echo -e "  LOCAL_ASSETS_ROOT    — path to local assets directory"
+    echo ""
+    echo -e "${CYAN}Exit codes:${NC}"
+    echo -e "  0  resolved successfully"
+    echo -e "  1  resolver error or invalid input"
+    echo -e "  2  bad arguments / input file not found"
+}
+
 # Function to show service URL
 show_service_url() {
     local private_ip=$(hostname -I | awk '{print $1}')
@@ -247,7 +335,7 @@ main() {
         print_header
         print_menu
 
-        read -p "Select an option [0-7]: " choice
+        read -p "Select an option [0-8]: " choice
         echo ""
 
         case $choice in
@@ -272,12 +360,15 @@ main() {
             7)
                 install_requirements
                 ;;
+            8)
+                show_generate_usage
+                ;;
             0)
                 echo -e "${GREEN}Goodbye!${NC}"
                 exit 0
                 ;;
             *)
-                echo -e "${RED}Invalid option. Please select 0-7.${NC}"
+                echo -e "${RED}Invalid option. Please select 0-8.${NC}"
                 ;;
         esac
     done

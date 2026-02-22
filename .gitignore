@@ -90,3 +90,6 @@ docs/todo*
 
 # Un-ignore everything vendored from orchestrator (not generated output)
 !third_party/contracts/**
+
+third_party/contracts/**/__pycache__/
+third_party/contracts/**/*.py[cod]
