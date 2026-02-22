@@ -87,3 +87,6 @@ data/*
 !data/.gitkeep
 
 docs/todo*
+
+# Un-ignore everything vendored from orchestrator (not generated output)
+!third_party/contracts/**
